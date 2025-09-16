@@ -56,21 +56,21 @@ if not st.session_state.setup_complete:
         if submitted:
             st.session_state.setores = {}
             valid = True
+            if not config_temp:
+                st.warning("Por favor, configure pelo menos um setor.")
+                valid = False
+
             for setor, pescadores in config_temp.items():
-                if not pescadores or any(not nome for nome in pescadores):
+                if not pescadores or any(not nome.strip() for nome in pescadores):
                     st.error(f"Por favor, preencha o nome de todos os pescadores no Setor {setor} antes de iniciar.")
                     valid = False
                     break
-                
                 st.session_state.setores[setor] = {'pescadores': {nome: [] for nome in pescadores}}
             
-            if valid and config_temp:
+            if valid:
                 st.session_state.setup_complete = True
                 st.success("Configuração guardada! A prova vai começar.")
                 st.rerun()
-            elif not config_temp:
-                 st.warning("Por favor, configure pelo menos um setor.")
-
 
 # --- TELA PRINCIPAL DA PROVA ---
 else:
@@ -91,7 +91,7 @@ else:
                 col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
                 pescador_selecionado = col1.selectbox("Pescador", pescadores_no_setor, key=f"sel_pesc_{setor_nome}", label_visibility="collapsed")
                 peixe_selecionado = col2.selectbox("Espécie de Peixe", lista_de_peixes, key=f"sel_peixe_{setor_nome}", label_visibility="collapsed")
-                medida_cm = col3.number_input("Medida (cm)", min_value=1, max_value=100, step=1, key=f"medida_{setor_nome}", label_visibility="collapsed")
+                medida_cm = col3.number_input("Medida (cm)", min_value=1, max_value=100, step=1, key=f"medida_{setor_nome}", label_visibility="collapsed", placeholder="cm")
                 add_button = col4.form_submit_button("➕ Adicionar")
 
                 if add_button and pescador_selecionado and peixe_selecionado and medida_cm:
@@ -103,14 +103,27 @@ else:
             st.markdown("---")
             st.header(f"Placar do Setor {setor_nome}")
 
+            # Criar lista de pescadores com pontuação para ordenar
+            placar_setor = []
             for pescador, capturas in setor_data['pescadores'].items():
-                with st.expander(f"**Pescador: {pescador}** - Pontos: {sum(c['Pontos (g)'] for c in capturas)}", expanded=True):
+                total_pontos = sum(c['Pontos (g)'] for c in capturas)
+                placar_setor.append({'Pescador': pescador, 'Pontuação': total_pontos, 'Capturas': capturas})
+            
+            # Ordenar por pontuação (maior primeiro)
+            placar_setor_ordenado = sorted(placar_setor, key=lambda x: x['Pontuação'], reverse=True)
+
+            for item in placar_setor_ordenado:
+                pescador = item['Pescador']
+                capturas = item['Capturas']
+                total_pontos = item['Pontuação']
+
+                with st.expander(f"**{pescador}** - Pontos: {total_pontos}", expanded=True):
                     if not capturas:
                         st.info("Nenhuma captura registada.")
                     else:
                         df_capturas_pescador = pd.DataFrame(capturas)
                         st.dataframe(df_capturas_pescador)
-                        total_pontos = df_capturas_pescador['Pontos (g)'].sum()
+                        
                         total_peixes = len(df_capturas_pescador)
                         
                         col_metric1, col_metric2 = st.columns(2)
