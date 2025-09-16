@@ -8,7 +8,8 @@ from streamlit_autorefresh import st_autorefresh
 
 # --- 1. CONFIGURAÇÃO DA FIREBASE ---
 try:
-    cred_dict = st.secrets["firebase_credentials"]
+    # A CORREÇÃO ESTÁ AQUI: convertemos o objeto para um dicionário
+    cred_dict = dict(st.secrets["firebase_credentials"])
 except Exception:
     st.error("As credenciais da Firebase não foram encontradas. Configure os 'Secrets' no Streamlit Cloud.")
     st.stop()
